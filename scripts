@@ -1,0 +1,43 @@
+#!/bin/sh
+
+####### To sanity Zookeeper deployments (directly using kubectl)
+
+# To get hostname of each pod - should be unique
+for i in 0 1 2; do kubectl exec zookeeper-$i -n zookeeper -- hostname; done
+
+# To get `myid` of each pod - should be unique
+for i in 0 1 2; do kubectl exec zookeeper-$i -n zookeeper -- cat /data/myid; done
+
+# To get FQDN of each pod - should be unique
+for i in 0 1 2; do kubectl exec zookeeper-$i -n zookeeper -- hostname -f; done
+
+# To get the contents of zoo.cfg
+# Ensure there must be -- server.<X> entries of all pods with their FQDNs
+kubectl exec zookeeper-0 -n zookeeper -- cat /conf/zoo.cfg
+
+# To sanity test the ensemble, we write data in one pod
+# and read it in another pod
+kubectl exec zookeeper-0 -n zookeeper zkCli.sh create /foo bar
+kubectl exec zookeeper-1 -n zookeeper zkCli.sh get /foo 
+
+# To confirm, zk pods are deployed on differnet K8s nodes
+for i in 0 1 2; do kubectl get pod zookeeper-$i -n zookeeper --template {{.spec.nodeName}}; echo ""; done
+
+# Create AWS EBS volume (to be used by zookeeper)
+# Please save the volume_id returned by this command
+aws ec2 create-volume --availability-zone=eu-west-1a --size=10 --volume-type=gp2
+
+# To scale down sts to 0 and then delete them to avoid any unexpected behaviour
+kubectl scale -f zookeeper.sts.yml --replicas=0
+kubectl scale -f apache-drill.sts.yml --replicas=0
+
+
+
+####### To test Apache drill deployments
+
+# check ui is running
+kubectl exec -it apache-drill-1 -n apache-drill -- drill-conf
+
+# then on this drill shell
+SELECT * FROM SYS.DRILLBITS;
+
