@@ -86,9 +86,7 @@ spec:
           command: ["sh", "-c", "until nc -z zookeeper-svc.zookeeper.svc.cluster.local:2181; do echo 'Waiting for ZK cluster to UP'; done; "]
       containers:
         - name: apache-drill
-          #image: olishubham/apache-drill:1.15.0
-          image: a-d:2
-          imagePullPolicy: Never
+          image: olishubham/apache-drill:1.15.0
           resources:
             requests:
               memory: "100Mi"                           # arbitrary resource limits
