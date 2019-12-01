@@ -11,8 +11,8 @@ This is a demostration of deploying Apache Drill and ZooKeeper on K8s as statefu
 
 ## Images
 
-* Apache drill - https://hub.docker.com/r/olishubham/apache-drill
-* Zookeeper - https://hub.docker.com/_/zookeeper/
+* Apache drill - https://hub.docker.com/r/olishubham/apache-drill (v1.15.0)
+* Zookeeper - https://hub.docker.com/_/zookeeper/ (v3.4.14)
 
 
 ## Architecture
@@ -36,7 +36,7 @@ This is a demostration of deploying Apache Drill and ZooKeeper on K8s as statefu
 
 * Pod Anti-affinity - deploy pods in different node (HA practice)
 
-* Pod scheduling - Ordered (default for statefulsets)
+* Pod Scheduling - Ordered (default for statefulsets)
 
 * Pod Security Context - run as uid/gid 1000 (both deployments)
 
