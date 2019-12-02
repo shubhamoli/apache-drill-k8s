@@ -1,0 +1,132 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: zookeeper
+
+
+---
+apiVersion: v1
+kind: Service      # A headless service is requried by sts to assign network identity to pods
+metadata:
+  name: zookeeper-headless-svc
+  namespace: zookeeper
+  labels:
+    app: zookeeper
+spec:
+  selector:
+    app: zookeeper
+  ports:
+    - name: server
+      port: 2888
+    - name: election
+      port: 3888
+  clusterIP: None
+  
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper-svc
+  namespace: zookeeper
+  labels:
+    app: zookeeper
+spec:
+  selector:
+    app: zookeeper
+  ports:
+    - name: client 
+      port: 2181
+
+  
+
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget         
+metadata:
+  name: zookeeper-pdb
+  namespace: zookeeper
+spec:
+  selector:
+    matchLabels:
+      app: zookeeper
+  maxUnavailable: 1               # 1 pod off is acceptable for 3 node zookeeper cluster
+
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zookeeper
+  namespace: zookeeper
+spec:
+  selector:
+    matchLabels:
+      app: zookeeper
+  serviceName: zookeeper-headless-svc
+  replicas: 3
+  podManagementPolicy: OrderedReady               # default for StatefulSets
+  template:
+    metadata:
+      labels:
+        app: zookeeper
+    spec:
+      # affinity:
+      #   podAntiAffinity:                                      # to avoid multiple zookeeper pods run in same node (a HA practice)
+      #     requiredDuringSchedulingIgnoredDuringExecution:     # scheduling based on labels on pods that are already running on the node 
+      #       - labelSelector:                                  # rather than based on labels on nodes    
+      #           matchExpressions:                             # so needs 3 different nodes   
+      #             - key: "app"                                # NOTE: Please un-comment this in production
+      #               operator: In  
+      #               values:
+      #                 - zookeeper
+      #         topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: zookeeper
+          image: "zookeeper:3.4.14"               # https://github.com/31z4/zookeeper-docker (used as docker official image for ZK)
+          resources:
+            requests:
+              memory: "100Mi"                     # arbitrary resource limits
+              cpu: "0.1"
+          command: ["/bin/bash"]                  # This is to set unique "myid" b/w 1-255 in each node of ZK ensemble
+          args:                                   # see issue: https://github.com/kubernetes/kubernetes/issues/40651 
+            - "-c"                                
+            - "export ZOO_MY_ID=$(expr $(hostname | grep -o '[[:digit:]]*$') + 1) && /bin/bash /docker-entrypoint.sh zkServer.sh start-foreground"
+          ports:
+            - name: client
+              containerPort: 2181
+            - name: server
+              containerPort: 2888
+            - name: election
+              containerPort: 3888                 # not enabling admin server so NO port for it
+          readinessProbe:
+            tcpSocket:
+              port: client
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            tcpSocket:
+              port: client
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: datadir
+              mountPath: /data
+          env:
+            - name: ZOO_SERVERS
+              value: "server.1=zookeeper-0.zookeeper-headless-svc.zookeeper.svc.cluster.local:2888:3888 server.2=zookeeper-1.zookeeper-headless-svc.zookeeper.svc.cluster.local:2888:3888 server.3=zookeeper-2.zookeeper-headless-svc.zookeeper.svc.cluster.local:2888:3888"
+      securityContext:
+        runAsUser: 1000                         # set by image maintainer (https://github.com/31z4/zookeeper-docker)
+    
+  volumeClaimTemplates:                         # using separate PV for each pod of zookeeper ensemble
+    - metadata:
+        name: datadir
+      spec:
+        accessModes: [ "ReadWriteOnce" ]
+        resources:
+          requests:
+            storage: 1Gi                        # arbitrary storage of 1 gig
+
