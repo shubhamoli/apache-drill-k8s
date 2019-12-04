@@ -11,7 +11,7 @@ metadata:
   name: apache-drill-headless-svc
   namespace: apache-drill
   labels:
-    app: apache-drill-svc
+    app: apache-drill
 spec:
   selector:
     app: apache-drill
@@ -31,7 +31,7 @@ metadata:
   name: apache-drill-svc
   namespace: apache-drill
   labels:
-    app: apache-drill-svc
+    app: apache-drill
 spec:
   selector:
     app: apache-drill
@@ -63,7 +63,7 @@ spec:
     matchLabels:
       app: apache-drill
   replicas: 3
-  serviceName: drill-headless-svc
+  serviceName: apache-drill-headless-svc
   podManagementPolicy: OrderedReady               # default for StatefulSets
   template:
     metadata:
@@ -117,3 +117,4 @@ spec:
               value: "zookeeper-svc.zookeeper.svc.cluster.local:2181"
           securityContext:
             runAsUser: 1000                         # set by image maintainer (https://github.com/shubhamoli/apache-drill-distributed)
+
