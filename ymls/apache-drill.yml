@@ -83,7 +83,7 @@ spec:
       initContainers:
         - name: zk-available
           image: busybox
-          command: ["sh", "-c", "until nc -z zookeeper-svc.zookeeper.svc.cluster.local:2181; do echo 'Waiting for ZK cluster to UP'; done; "]
+          command: ["sh", "-c", "until nc -z zookeeper-svc.zookeeper.svc.cluster.local 2181; do echo 'Waiting for ZK cluster to UP'; done; "]
       containers:
         - name: apache-drill
           image: olishubham/apache-drill:1.15.0

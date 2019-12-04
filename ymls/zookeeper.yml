@@ -120,6 +120,8 @@ spec:
               value: "server.1=zookeeper-0.zookeeper-headless-svc.zookeeper.svc.cluster.local:2888:3888 server.2=zookeeper-1.zookeeper-headless-svc.zookeeper.svc.cluster.local:2888:3888 server.3=zookeeper-2.zookeeper-headless-svc.zookeeper.svc.cluster.local:2888:3888"
       securityContext:
         runAsUser: 1000                         # set by image maintainer (https://github.com/31z4/zookeeper-docker)
+        fsGroup: 1000
+        runAsNonRoot: true
     
   volumeClaimTemplates:                         # using separate PV for each pod of zookeeper ensemble
     - metadata:
